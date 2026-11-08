@@ -1,0 +1,31 @@
+# Python caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Experiment outputs, checkpoints, logs
+expts/
+wandb/
+*.pth
+*.pt
+*.ckpt
+adapter-history/
+
+# Datasets and token shards (keep code in hw4lib/data/)
+/data/
+*.bin
+*.npy
+
+# Local scratch files from debugging
+debug_kv.py
+mine/
+
+# Editor / OS / secrets
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.env
