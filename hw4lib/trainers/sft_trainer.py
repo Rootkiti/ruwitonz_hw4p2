@@ -201,7 +201,6 @@ class SFTTrainer(BaseTrainer):
         self.model.eval()
         max_context = self.model.max_len
         max_new_tokens = self.config.get("generation", {}).get("max_new_tokens")
-        repeat_penalty = float(self.config.get("generation", {}).get("repeat_penalty", 1.0))
         use_cache = bool(getattr(self.model, "use_rope", False))
         predictions = []
         for record in tqdm(records, dynamic_ncols=True, leave=False, desc="[Generating SFT]"):
@@ -219,8 +218,7 @@ class SFTTrainer(BaseTrainer):
                 cache_score_fn=self.model.score_cached if use_cache else None,
             )
             prompt = torch.tensor([prompt_ids], dtype=torch.long, device=self.device)
-            # sequences, _ = generator.generate_greedy(prompt)    
-            sequences, _ = generator.generate_greedy(prompt, repeat_penalty=repeat_penalty)
+            sequences, _ = generator.generate_greedy(prompt)
             generated_ids = sequences[0, len(prompt_ids):].tolist()
             if self.tokenizer.eos_id in generated_ids:
                 generated_ids = generated_ids[:generated_ids.index(self.tokenizer.eos_id)]
