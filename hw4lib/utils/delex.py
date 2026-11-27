@@ -48,7 +48,7 @@ def delexicalize_triples(triples, raw_to_tag):
 
 def delexicalize_text(text, surface_to_tag):
     for surface in sorted(surface_to_tag, key=len, reverse=True):
-        text = text.replace(surface, surface_to_tag[surface])
+        text = re.sub(re.escape(surface), surface_to_tag[surface], text, flags=re.IGNORECASE)
     return text
 
 
