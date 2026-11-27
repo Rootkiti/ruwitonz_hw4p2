@@ -11,7 +11,7 @@ from tqdm.auto import tqdm
 from .base_trainer import BaseTrainer
 from ..decoding.sequence_generator import SequenceGenerator
 from ..utils.webnlg import format_webnlg_prompt, score_webnlg
-
+from ..utils.delex import build_delex_map, delexicalize_triples, relexicalize_text
 
 class SFTTrainer(BaseTrainer):
     """Train a decoder on prompt/response pairs.
@@ -202,9 +202,16 @@ class SFTTrainer(BaseTrainer):
         max_context = self.model.max_len
         max_new_tokens = self.config.get("generation", {}).get("max_new_tokens")
         use_cache = bool(getattr(self.model, "use_rope", False))
+        delex = self.config.get("delex", False)
         predictions = []
         for record in tqdm(records, dynamic_ncols=True, leave=False, desc="[Generating SFT]"):
-            prompt_ids = self.tokenizer.encode(format_webnlg_prompt(record["triples"]))
+            if delex:
+                raw_to_tag, _, tag_to_surface = build_delex_map(record["triples"])
+                triples_in = delexicalize_triples(record["triples"], raw_to_tag)
+            else:
+                triples_in, tag_to_surface = record["triples"], None
+            prompt_ids = self.tokenizer.encode(format_webnlg_prompt(triples_in))
+
             if not prompt_ids or len(prompt_ids) >= max_context:
                 raise ValueError(f"Prompt for {record.get('id')} does not fit the model context")
             max_length = max_context
@@ -222,7 +229,10 @@ class SFTTrainer(BaseTrainer):
             generated_ids = sequences[0, len(prompt_ids):].tolist()
             if self.tokenizer.eos_id in generated_ids:
                 generated_ids = generated_ids[:generated_ids.index(self.tokenizer.eos_id)]
-            predictions.append(self.tokenizer.decode(generated_ids).strip())
+            pred = self.tokenizer.decode(generated_ids).strip()
+            if tag_to_surface:
+                pred = relexicalize_text(pred, tag_to_surface)
+            predictions.append(pred)
         return predictions
 
     def evaluate(self, dataloader, records=None):
