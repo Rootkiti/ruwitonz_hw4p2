@@ -46,9 +46,22 @@ def delexicalize_triples(triples, raw_to_tag):
     return out
 
 
+def _num_variants(surface):
+    variants = {surface, surface.replace(",", "")}
+    s = surface.replace(",", "")
+    if s.endswith(".0"):
+        variants.add(s[:-2])
+    return sorted(variants, key=len, reverse=True)
+
+
 def delexicalize_text(text, surface_to_tag):
     for surface in sorted(surface_to_tag, key=len, reverse=True):
-        text = re.sub(re.escape(surface), surface_to_tag[surface], text, flags=re.IGNORECASE)
+        tag = surface_to_tag[surface]
+        if _NUM_RE.match(surface):
+            for variant in _num_variants(surface):
+                text = re.sub(r'(?<!\d)' + re.escape(variant) + r'(?!\d)', tag, text)
+        else:
+            text = re.sub(re.escape(surface), tag, text, flags=re.IGNORECASE)
     return text
 
 
